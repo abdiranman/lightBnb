@@ -12,7 +12,7 @@ const pool = new Pool({
 
 pool.query(`SELECT title FROM properties LIMIT 10;`)
   .then(response => {
-    // console.log(response.rows); // Log the results to the console
+    console.log(response.rows); // Log the results to the console
   })
   .catch(error => {
     console.error('Error executing query:', error);
@@ -27,15 +27,20 @@ pool.query(`SELECT title FROM properties LIMIT 10;`)
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithEmail = function (email) {
-  let resolvedUser = null;
-  for (const userId in users) {
-    const user = users[userId];
-    if (user && user.email.toLowerCase() === email.toLowerCase()) {
-      resolvedUser = user;
-    }
-  }
-  return Promise.resolve(resolvedUser);
+  return pool
+    .query(`SELECT * FROM users WHERE email = $1;`,[email])
+    .then((res) => {
+      console.log(res.rows);
+      if(!res.rows[0]){
+        return null;
+      }
+      return res.rows[0];
+    })
+    // .catch((error) => {
+    //   console.log(error.message);
+    // })
 };
+
 
 /**
  * Get a single user from the database given their id.
@@ -43,8 +48,20 @@ const getUserWithEmail = function (email) {
  * @return {Promise<{}>} A promise to the user.
  */
 const getUserWithId = function (id) {
-  return Promise.resolve(users[id]);
+  return pool
+  .query(`SELECT * FROM users WHERE id = $1;`,[id])
+  .then((res) => {
+    console.log(res.rows);
+    if(!res.rows[0]){
+      return null;
+    }
+    return res.rows[0];
+  })
+  // .catch((error) => {
+  //   console.log(error.message);
+  // })
 };
+
 
 /**
  * Add a new user to the database.
@@ -52,11 +69,13 @@ const getUserWithId = function (id) {
  * @return {Promise<{}>} A promise to the user.
  */
 const addUser = function (user) {
-  const userId = Object.keys(users).length + 1;
-  user.id = userId;
-  users[userId] = user;
-  return Promise.resolve(user);
+  return pool
+  .query('INSERT INTO users (name, email, password) VALUES($1, $2, $3) RETURNING *',[user.name, user.email, user.password] )
+  .then((res) =>{
+    console.log(res.rows);
+  });
 };
+
 
 /// Reservations
 
@@ -79,14 +98,14 @@ const getAllReservations = function (guest_id, limit = 10) {
  */
 const getAllProperties = (options, limit = 10) => {
   return pool
-    .query(`SELECT * FROM properties LIMIT $1`, [limit])
-    .then((result) => {
-      console.log(result.rows);
-      return result.rows;
-    })
-    .catch((err) => {
-      console.log(err.message);
-    });
+  .query(`SELECT * FROM properties LIMIT $1`, [limit])
+  .then((result) => {
+    //console.log(result.rows);
+    return result.rows;
+  })
+  .catch((err) => {
+    console.log(err.message);
+  });
 };
 /**
  * Add a property to the database
